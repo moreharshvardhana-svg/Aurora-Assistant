@@ -50,4 +50,18 @@ hl.bind(mainMod .. " + G", hl.dsp.exec_cmd("/path/to/Aurora-Assistant/Aurora-Ass
 > [!NOTE]
 > If you are on GNOME or KDE Plasma, you can add a shortcut pointing to the script directly in your system settings.
 
+### Configuration
+
+#### Model Selection
+Aurora defaults to `gemini-3.6-flash`. You can override the model either by editing the default in `Aurora-Assistant.sh`:
+
+- **Environment Variable (Recommended):**
+  ```bash
+  export GEMINI_MODEL="gemini-3.6-flash"
+  ```
+
+
+> [!NOTE]
+> Ensure your selected model supports free-tier requests and check your daily quota limits on Google AI Studio if you experience rate limiting.
+
 More features coming soon!
