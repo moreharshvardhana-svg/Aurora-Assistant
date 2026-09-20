@@ -14,7 +14,7 @@ GEMINI_MODEL="gemini-3.6-flash"
 ROFI_THEME='window {width: 20%; location: North;}'
 
 if command -v rofi &>/dev/null; then
-    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]]; then
+    if [[ "$XDG_CURRENT_DESKTOP" == "GNOME" ]]; then
         search=$(rofi -x11 -normal-window -dmenu -p "Ask Aurora:" -theme-str "$ROFI_THEME")
     else
         search=$(rofi -normal-window -dmenu -p "Ask Aurora:" -theme-str "$ROFI_THEME")
@@ -25,15 +25,24 @@ else
     notify-send "Aurora Error" "No supported launcher (rofi/wofi) found."
     exit 1
 fi
+
 [ -z "$search" ] && exit 0
-mkdir -p /tmp/AI_assistant
-MEMORY_FILE="/tmp/AI_assistant/memory.json"
+
+trimmed_search="${search//[[:space:]]/}"
+if [ -z "$trimmed_search" ]; then
+    notify-send "Aurora" "Please say something e_e"
+    exit 0
+fi
+
+MEMORY_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/Aurora-Assistant"
+MEMORY_FILE="$MEMORY_DIR/memory.json"
+LOCK_FILE="$MEMORY_DIR/compact.lock"
+mkdir -p "$MEMORY_DIR"
 
 if [ ! -f "$MEMORY_FILE" ]; then
     echo "[]" > "$MEMORY_FILE"
 fi
 
-trimmed_search="${search//[[:space:]]/}"
 if [ -n "$trimmed_search" ]; then
     SYSTEM_INS="$(cat "${SCRIPT_DIR}/sysprompt.txt")"
 
@@ -76,7 +85,6 @@ if [ -n "$trimmed_search" ]; then
         '. += [{"User": $user, "AI": $ai}]' "$MEMORY_FILE" > "${MEMORY_FILE}.tmp" && mv "${MEMORY_FILE}.tmp" "$MEMORY_FILE"
 
     entry_count=$(jq 'length' "$MEMORY_FILE")
-    LOCK_FILE="/tmp/AI_assistant/compact.lock"
     
     find "$MEMORY_DIR" -name "compact.lock" -mmin +5 -delete 2>/dev/null
 
