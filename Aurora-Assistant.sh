@@ -4,6 +4,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/geminiapikey.sh" ]; then
     source "$SCRIPT_DIR/geminiapikey.sh"
 fi
+if [ -z "$GEMINI_API_KEY" ]; then
+    notify-send -u critical "API Error" "GEMINI_API_KEY is not set."
+    exit 1
+fi
+
+GEMINI_MODEL="gemini-3.6-flash"
 
 ROFI_THEME='window {width: 20%; location: North;}'
 
@@ -19,7 +25,7 @@ else
     notify-send "Aurora Error" "No supported launcher (rofi/wofi) found."
     exit 1
 fi
-
+[ -z "$search" ] && exit 0
 mkdir -p /tmp/AI_assistant
 MEMORY_FILE="/tmp/AI_assistant/memory.json"
 
@@ -39,13 +45,13 @@ if [ -n "$trimmed_search" ]; then
             systemInstruction: { parts: [{ text: $sys }] },
             contents: (
                 ($history[0] // []) | map(
-                    { role: "user", parts: [{ text: .User }] },
-                    { role: "model", parts: [{ text: (.Aurora // .AI) }] }
+                    { role: "user", parts: [{ text: (.User // "Hello") }] },
+		    { role: "model", parts: [{ text: (.Aurora // .AI // "Greetings.") }] }
                 ) + [ { role: "user", parts: [{ text: $usr }] } ]
             )
         }')
 
-    response=$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$GEMINI_API_KEY" \
+    response=$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent?key=$GEMINI_API_KEY" \
         -H 'Content-Type: application/json' \
         -d "$api_payload")
 
@@ -67,7 +73,44 @@ if [ -n "$trimmed_search" ]; then
         -e "s/&apos;/'/g")
 
     jq --arg user "$search" --arg ai "$clean_result" \
-        '. += [{"User": $user, "Aurora": $ai}] | .[-30:]' "$MEMORY_FILE" > "${MEMORY_FILE}.tmp" && mv "${MEMORY_FILE}.tmp" "$MEMORY_FILE"
+        '. += [{"User": $user, "AI": $ai}]' "$MEMORY_FILE" > "${MEMORY_FILE}.tmp" && mv "${MEMORY_FILE}.tmp" "$MEMORY_FILE"
+
+    entry_count=$(jq 'length' "$MEMORY_FILE")
+    LOCK_FILE="/tmp/AI_assistant/compact.lock"
+    
+    find "$MEMORY_DIR" -name "compact.lock" -mmin +5 -delete 2>/dev/null
+
+    if [ "$entry_count" -ge 10 ] && [ ! -f "$LOCK_FILE" ]; then
+        (
+            touch "$LOCK_FILE"
+
+            summary_payload=$(jq -n \
+                --slurpfile history "$MEMORY_FILE" \
+                '{
+                    systemInstruction: { parts: [{ text: "You are a factual conversation summarizer. Distill user preferences, topics, and facts into concise bullet points. Retain specifics, omit pleasantries." }] },
+                    contents: (
+                        ($history[0][:-1] // []) | map(
+                            { role: "user", parts: [{ text: (.User // "Hello") }] },
+                            { role: "model", parts: [{ text: (.AI // "Understood.") }] }
+                        ) + [ { role: "user", parts: [{ text: "Summarize our entire prior conversation above into a concise factual summary." }] } ]
+                    )
+                }')
+
+            summary_res=$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent?key=$GEMINI_API_KEY" \
+                -H 'Content-Type: application/json' \
+                -d "$summary_payload")
+
+            summary_text=$(echo "$summary_res" | jq -r '.candidates[0].content.parts[0].text // empty')
+
+            if [ -n "$summary_text" ]; then
+                jq --arg summary "$summary_text" \
+                    '[{"User": "[Prior conversation context]", "AI": $summary}] + .[-1:]' \
+                    "$MEMORY_FILE" > "${MEMORY_FILE}.tmp" && mv "${MEMORY_FILE}.tmp" "$MEMORY_FILE"
+            fi
+
+            rm -f "$LOCK_FILE"
+        ) &
+    fi
 
     action=$(notify-send "Aurora" "$result" --action="copy=Copy")
 
