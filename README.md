@@ -14,6 +14,11 @@ A quick, time-saving AI overlay for Linux desktops running Wayland, Rofi, and Sw
 - **Enhanced Formatting:** Native text styling, color highlights, and automatic XML entity escaping for SwayNC and notification daemons.
 - **Smart Context Compaction:** Long conversation history is now summarized in a more streamlined way.
 
+<img width="780" height="510" alt="GivingCommand" src="https://github.com/user-attachments/assets/03fd0123-dd5e-419e-b970-02c577312b7a" />
+<img width="931" height="315" alt="RecievingCode" src="https://github.com/user-attachments/assets/8f743856-2f6e-48dc-93ce-2969c56fef17" />
+<img width="1920" height="972" alt="OpenedCatvideos" src="https://github.com/user-attachments/assets/7a4249d7-ecb6-4499-a510-f5320b3add75" />
+
+
 ## Dependencies
 - `curl`
 - `jq`
