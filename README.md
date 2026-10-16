@@ -7,6 +7,13 @@ A quick, time-saving AI overlay for Linux desktops running Wayland, Rofi, and Sw
 - Native SwayNC GTK Pango styling.
 - One-click copy action to clipboard with stripped markup tags for clean pasting.
 
+## What's New
+
+- **Optional On-Device Code Execution:** Direct execution of terminal tasks, Includes safety prompts and manual confirmation buttons.
+- **Configurable Settings:** You can now easily adjust your model choice and features.
+- **Enhanced Formatting:** Native text styling, color highlights, and automatic XML entity escaping for SwayNC and notification daemons.
+- **Smart Context Compaction:** Long conversation history is now summarized in a more streamlined way.
+
 ## Dependencies
 - `curl`
 - `jq`
@@ -52,14 +59,16 @@ hl.bind(mainMod .. " + G", hl.dsp.exec_cmd("/path/to/Aurora-Assistant/Aurora-Ass
 
 ### Configuration
 
+Aurora includes a configuration file (`Aurora.conf`).
+
 #### Model Selection
-Aurora defaults to `gemini-3.6-flash`. You can override the model either by editing the default in `Aurora-Assistant.sh`:
+Aurora defaults to `gemini-3.6-flash`. You can change the model through the config file.
 
-- **Environment Variable (Recommended):**
-  ```bash
-  export GEMINI_MODEL="gemini-3.6-flash"
-  ```
+#### Code Execution
+Aurora supports on-device code execution. By default, this feature is disabled for safety reasons, but you can enable it through the config file by setting `"allow-code-execution": true`.
 
+> [!WARNING]
+> Enabling Code Execution may carry risks even with guardrails in place. **Always** double-check the displayed code before clicking the "Execute Code" button.
 
 > [!NOTE]
 > Ensure your selected model supports free-tier requests and check your daily quota limits on Google AI Studio if you experience rate limiting.
